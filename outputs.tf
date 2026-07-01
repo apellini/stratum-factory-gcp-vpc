@@ -30,3 +30,23 @@ output "vpc_self_link" {
   EOT
   value       = google_compute_network.vpc.self_link
 }
+
+output "route_ids" {
+  description = <<-EOT
+    Map of custom route logical names to GCP resource IDs.
+    Type: map(string).
+    Example: { "to-internet" = "projects/stratum-dev-sandbox/global/routes/stratum-dev-to-internet" }
+    Keys match the name attributes in the routes input variable. Empty map when routes = [].
+  EOT
+  value = { for name, route in google_compute_route.custom : name => route.id }
+}
+
+output "route_names" {
+  description = <<-EOT
+    Map of custom route logical names to GCP resource names.
+    Type: map(string).
+    Example: { "to-internet" = "stratum-dev-to-internet" }
+    Keys match the name attributes in the routes input variable. Empty map when routes = [].
+  EOT
+  value = { for name, route in google_compute_route.custom : name => route.name }
+}

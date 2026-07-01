@@ -92,6 +92,31 @@ func TestVpcValidate(t *testing.T) {
 	require.NoError(t, err, "tofu validate must pass for valid inputs")
 }
 
+// TestVpcValidateWithRoute verifies validate succeeds when a custom route is provided.
+func TestVpcValidateWithRoute(t *testing.T) {
+	t.Parallel()
+	opts := tofuOptions(t, map[string]interface{}{
+		"environment": "dev",
+		"project_id":  "stratum-dev-sandbox",
+		"name_prefix": "stratum-dev",
+		"routes": []interface{}{
+			map[string]interface{}{
+				"name":             "to-internet",
+				"dest_range":       "0.0.0.0/0",
+				"next_hop_gateway": "default-internet-gateway",
+			},
+		},
+	})
+	terraform.Init(t, opts)
+	_, err := terraform.RunTerraformCommandE(t, opts, "validate")
+	result, detail := "✅ PASS", "validate completed with custom route"
+	if err != nil {
+		result, detail = "❌ FAIL", err.Error()
+	}
+	printReport(t, [][]string{{"VpcValidateWithRoute", result, detail}})
+	require.NoError(t, err, "tofu validate must pass with a valid route")
+}
+
 // ── Negative: variable validation blocks ─────────────────────────────────────
 
 // TestVpcRejectsInvalidEnvironment verifies that an unapproved environment is rejected.
@@ -165,6 +190,97 @@ func TestVpcRejectsInvalidRoutingMode(t *testing.T) {
 	}
 	printReport(t, [][]string{{"VpcRejectsInvalidRoutingMode", result, detail}})
 	assert.Error(t, err, "must reject routing_mode='INVALID'")
+}
+
+// TestVpcRejectsInvalidMtu verifies that an out-of-range MTU is rejected.
+func TestVpcRejectsInvalidMtu(t *testing.T) {
+	t.Parallel()
+	opts := tofuOptions(t, map[string]interface{}{
+		"environment": "dev",
+		"project_id":  "stratum-dev-sandbox",
+		"name_prefix": "stratum-dev",
+		"mtu":         float64(100), // below minimum 1300
+	})
+	_, err := terraform.InitAndPlanE(t, opts)
+	result, detail := "✅ PASS", "plan correctly rejected mtu=100"
+	if err == nil {
+		result, detail = "❌ FAIL", "plan should have failed"
+	}
+	printReport(t, [][]string{{"VpcRejectsInvalidMtu", result, detail}})
+	assert.Error(t, err, "must reject mtu=100 (below minimum 1300)")
+}
+
+// TestVpcRejectsRouteWithBadCidr verifies that an invalid dest_range CIDR is rejected.
+func TestVpcRejectsRouteWithBadCidr(t *testing.T) {
+	t.Parallel()
+	opts := tofuOptions(t, map[string]interface{}{
+		"environment": "dev",
+		"project_id":  "stratum-dev-sandbox",
+		"name_prefix": "stratum-dev",
+		"routes": []interface{}{
+			map[string]interface{}{
+				"name":             "bad-route",
+				"dest_range":       "not-a-cidr",
+				"next_hop_gateway": "default-internet-gateway",
+			},
+		},
+	})
+	_, err := terraform.InitAndPlanE(t, opts)
+	result, detail := "✅ PASS", "plan correctly rejected invalid route dest_range"
+	if err == nil {
+		result, detail = "❌ FAIL", "plan should have failed"
+	}
+	printReport(t, [][]string{{"VpcRejectsRouteWithBadCidr", result, detail}})
+	assert.Error(t, err, "must reject invalid dest_range CIDR")
+}
+
+// TestVpcRejectsRouteWithNoNextHop verifies that a route without any next_hop is rejected.
+func TestVpcRejectsRouteWithNoNextHop(t *testing.T) {
+	t.Parallel()
+	opts := tofuOptions(t, map[string]interface{}{
+		"environment": "dev",
+		"project_id":  "stratum-dev-sandbox",
+		"name_prefix": "stratum-dev",
+		"routes": []interface{}{
+			map[string]interface{}{
+				"name":       "no-hop",
+				"dest_range": "10.0.0.0/8",
+				// no next_hop_* set — all default to null, count = 0, fails validation
+			},
+		},
+	})
+	_, err := terraform.InitAndPlanE(t, opts)
+	result, detail := "✅ PASS", "plan correctly rejected route with no next_hop"
+	if err == nil {
+		result, detail = "❌ FAIL", "plan should have failed"
+	}
+	printReport(t, [][]string{{"VpcRejectsRouteWithNoNextHop", result, detail}})
+	assert.Error(t, err, "must reject route without any next_hop")
+}
+
+// TestVpcRejectsRouteWithTwoNextHops verifies that a route with multiple next_hops is rejected.
+func TestVpcRejectsRouteWithTwoNextHops(t *testing.T) {
+	t.Parallel()
+	opts := tofuOptions(t, map[string]interface{}{
+		"environment": "dev",
+		"project_id":  "stratum-dev-sandbox",
+		"name_prefix": "stratum-dev",
+		"routes": []interface{}{
+			map[string]interface{}{
+				"name":             "two-hops",
+				"dest_range":       "10.0.0.0/8",
+				"next_hop_gateway": "default-internet-gateway",
+				"next_hop_ip":      "10.100.0.1",
+			},
+		},
+	})
+	_, err := terraform.InitAndPlanE(t, opts)
+	result, detail := "✅ PASS", "plan correctly rejected route with multiple next_hops"
+	if err == nil {
+		result, detail = "❌ FAIL", "plan should have failed"
+	}
+	printReport(t, [][]string{{"VpcRejectsRouteWithTwoNextHops", result, detail}})
+	assert.Error(t, err, "must reject route with two next_hops")
 }
 
 // ── OpenTofu binary enforcement ───────────────────────────────────────────────
