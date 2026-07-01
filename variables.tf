@@ -33,6 +33,7 @@ variable "name_prefix" {
   }
 }
 
+# tflint-ignore: terraform_unused_declarations
 variable "tags" {
   description = "Map of labels to apply to all resources. Keys and values must be non-empty strings."
   type        = map(string)
