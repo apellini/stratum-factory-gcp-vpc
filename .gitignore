@@ -1,0 +1,17 @@
+# OpenTofu / provider artifacts
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!*.tfvars.example
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Test artifacts
+tests/test_output.txt
+
+# OS
+.DS_Store
