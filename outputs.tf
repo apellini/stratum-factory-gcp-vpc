@@ -38,7 +38,7 @@ output "route_ids" {
     Example: { "to-internet" = "projects/stratum-dev-sandbox/global/routes/stratum-dev-to-internet" }
     Keys match the name attributes in the routes input variable. Empty map when routes = [].
   EOT
-  value = { for name, route in google_compute_route.custom : name => route.id }
+  value       = { for name, route in google_compute_route.custom : name => route.id }
 }
 
 output "route_names" {
@@ -48,5 +48,5 @@ output "route_names" {
     Example: { "to-internet" = "stratum-dev-to-internet" }
     Keys match the name attributes in the routes input variable. Empty map when routes = [].
   EOT
-  value = { for name, route in google_compute_route.custom : name => route.name }
+  value       = { for name, route in google_compute_route.custom : name => route.name }
 }
