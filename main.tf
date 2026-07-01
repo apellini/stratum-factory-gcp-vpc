@@ -28,13 +28,13 @@ resource "google_compute_network" "vpc" {
 resource "google_compute_route" "custom" {
   for_each = { for r in var.routes : r.name => r }
 
-  project          = var.project_id
-  name             = "${var.name_prefix}-${each.value.name}"
-  network          = google_compute_network.vpc.name
-  dest_range       = each.value.dest_range
-  priority         = each.value.priority
-  description      = each.value.description
-  tags             = length(each.value.instance_tags) > 0 ? each.value.instance_tags : null
+  project     = var.project_id
+  name        = "${var.name_prefix}-${each.value.name}"
+  network     = google_compute_network.vpc.name
+  dest_range  = each.value.dest_range
+  priority    = each.value.priority
+  description = each.value.description
+  tags        = length(each.value.instance_tags) > 0 ? each.value.instance_tags : null
 
   next_hop_gateway       = each.value.next_hop_gateway
   next_hop_ip            = each.value.next_hop_ip
